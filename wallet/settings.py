@@ -75,10 +75,21 @@ WSGI_APPLICATION = 'wallet.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/3.0/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+#     }
+# }
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'wallet_db',
+        'USER': 'techversant',
+        'PASSWORD': 'password',
+        'HOST': 'localhost',
+        'PORT': '5432',                      # Set to empty string for default.
     }
 }
 
@@ -100,7 +111,7 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
-
+AUTH_USER_MODEL = 'mini_wallet.WalletUser'
 
 # Internationalization
 # https://docs.djangoproject.com/en/3.0/topics/i18n/
