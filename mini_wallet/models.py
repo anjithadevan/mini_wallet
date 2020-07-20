@@ -6,19 +6,16 @@ import uuid
 
 class WalletUser(AbstractUser):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    customer_xid = models.UUIDField(default=uuid.uuid4, null=False, blank=False)
 
 
 class Wallet(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     owned_by = models.ForeignKey(WalletUser, on_delete=models.CASCADE,)
     status = models.BooleanField(default=False)
-    enabled_at = models.DateTimeField()
-    disabled_at = models.DateTimeField()
+    enabled_at = models.DateTimeField(null=True)
+    disabled_at = models.DateTimeField(null=True)
     balance = models.IntegerField(default=0)
-
-    def __str__(self):
-        return self.owned_by
-
 
 class Deposit(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
