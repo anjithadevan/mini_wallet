@@ -16,10 +16,14 @@ class WalletSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
 
     def get_status(self, wallet):
-        if wallet['status']:
+        if wallet.status:
             return "enabled"
         return "disabled"
 
     class Meta:
         model = Wallet
         fields = '__all__'
+
+
+class DisableWalletSerializer(serializers.Serializer):
+    is_disabled = serializers.BooleanField(required=True)
