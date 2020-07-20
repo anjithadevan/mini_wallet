@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+    <title class="align-items-center">{% block title %}My Wallet{% endblock %}</title>
+    {% block style %}{% endblock %}
+  </head>
+  <body>
+  <div class="container main">
+      <div class="row"><h1 style="padding-left: 450px;">My Wallet</h1></div>
+      <nav class="navbar navbar-expand-lg navbar-light bg-primary">
+
+          <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarText" aria-controls="navbarText" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarText">
+            <ul class="navbar-nav mr-auto">
+              <li class="nav-item active">
+                  <a class="nav-link" href="#" id="create_user">Create user</a>
+<!--                  <button id="disable_wallet">Disable Wallet</button>-->
+              </li>
+              <li class="nav-item" id="wallet_status">
+                <a class="nav-link" href="#" id="enable_wallet">Enable Wallet</a>
+              </li>
+              <li class="nav-item" id="add_money">
+<!--               <a class="nav-link" href="#">Add Money</a>-->
+              </li>
+                <li class="nav-item" id="use_money">
+<!--               <a class="nav-link" href="#">Use Money</a>-->
+              </li>
+            </ul>
+          </div>
+      </nav>
+      <h2>Wallet Details</h2>
+      <ul class="list-group" id="wallet_details">
+        <li class="list-group-item list-group-item-success">First item</li>
+      </ul>
+  </div>
+  <div class="modal" id="myModal">
+    <div class="modal-dialog">
+      <div class="modal-content">
+
+        <!-- Modal Header -->
+        <div class="modal-header">
+          <h4 class="modal-title">Money added to the wallet successfully</h4>
+          <button type="button" class="close" data-dismiss="modal">&times;</button>
+        </div>
+
+        <!-- Modal body -->
+        <div class="modal-body">
+            <ul class="detail">
+
+            </ul>
+        </div>
+
+        <!-- Modal footer -->
+        <div class="modal-footer">
+          <button type="button" class="btn btn-danger" data-dismiss="modal">Close</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+  </body>
+</html>
+<script>
+
+var url ="http://127.0.0.1:8000/api/v1/"
+$( document ).ready(function() {
+    if(localStorage.getItem("token")){
+        getDetails()
+    }
+    if(localStorage.getItem("enabled")){
+        $("#wallet_status").html('<a class="nav-link" href="#" id="disable_wallet">Disable Wallet</a>')
+        $("#add_money").html('<a class="nav-link" href="#" id="money_add">Add Money</a>')
+        $("#use_money").html('<a class="nav-link" href="#" id="money_remove">Use Money</a>')
+
+    }
+    else{
+        $("#wallet_status").html('<a class="nav-link" href="#" id="enable_wallet">Enable Wallet</a>')
+    }
+    $( "#disable_wallet" ).on('click',function() {
+        disableWallet()
+    });
+    $( "#enable_wallet" ).on('click',function() {
+        enableWallet()
+    })
+    $( "#money_add" ).on('click',function() {
+        $.ajax({
+          type: "POST",
+          url: url+'wallet/deposits/',
+          dataType:  "JSON",
+          headers: {"Authorization": "Token "+localStorage.getItem("token")},
+          data: {amount:4000,reference_id:create_UUID()},
+          success: function (data) {
+            $('#myModal').modal('show');
+            $(".modal-title").html('Added money Successfully')
+             $(".detail").html('<li>'+'Id: '+data.data.deposit.id+'</li>'+
+             '<li>'+'Amount: '+data.data.deposit.amount+'</li>'+
+             '<li>'+'Status: '+data.data.deposit.status+'</li>'+
+             '<li>'+'ReferenceId: '+data.data.deposit.reference_id+'</li>'+
+             '<li>'+'Deposited At: '+data.data.deposit.deposited_at+'</li>'+
+             '<li>'+'Deposited By: '+data.data.deposit.deposited_by+'</li>'
+             )
+             getDetails()
+          },
+          error: function (data) {
+            $('#myModal').modal('show');
+            $(".detail").html('<li>'+''+'</li>')
+            console.log(data,'error');
+          }
+        });
+    });
+    $( "#money_remove" ).on('click',function() {
+        $.ajax({
+          type: "POST",
+          url: url+'wallet/withdrawals/',
+          dataType:  "JSON",
+          headers: {"Authorization": "Token "+localStorage.getItem("token")},
+          data: {amount:4000,reference_id:create_UUID()},
+          success: function (data) {
+          $(".modal-title").html('Removed money Successfully')
+            $('#myModal').modal('show');
+             $(".detail").html('<li>'+'Id: '+data.data.withdrawal.id+'</li>'+
+             '<li>'+'Amount: '+data.data.withdrawal.amount+'</li>'+
+             '<li>'+'Status: '+data.data.withdrawal.status+'</li>'+
+             '<li>'+'ReferenceId: '+data.data.withdrawal.reference_id+'</li>'+
+             '<li>'+'Withdrawn At: '+data.data.withdrawal.withdrawn_at+'</li>'+
+             '<li>'+'Withdrawn By: '+data.data.withdrawal.withdrawn_by+'</li>'
+             )
+             getDetails()
+          },
+          error: function (data) {
+            $('#myModal').modal('show');
+            $(".detail").html('<dd>'+data.responseJSON.data.message+'</dd>')
+            console.log(data,'error');
+          }
+        });
+    });
+});
+$( "#disable_wallet" ).click(function() {
+        disableWallet()
+    });
+$( "#enable_wallet" ).click(function() {
+    enableWallet()
+})
+function enableWallet(){
+    $.ajax({
+          type: "POST",
+          url: url+'wallet',
+          dataType:  "JSON",
+          headers: {"Authorization": "Token "+localStorage.getItem("token")},
+          data: {},
+          success: function (data) {
+            alert("successfully enabled wallet")
+            localStorage.setItem("enabled","enabled")
+            location.reload()
+          },
+          error: function (data) {
+            console.log(data,'error');
+          }
+        });
+}
+function disableWallet(){
+    $.ajax({
+          type: "PATCH",
+          url: url+'wallet',
+          dataType:  "JSON",
+          headers: {"Authorization": "Token "+localStorage.getItem("token")},
+          data: {is_disabled:true},
+          success: function (data) {
+          alert("successfully disabled wallet")
+            localStorage.removeItem("enabled")
+            $("#wallet_details").html('<li class="list-group-item list-group-item-danger">'+'Disabled'+'</li>')
+            location.reload()
+          },
+          error: function (data) {
+            console.log(data,'error');
+          }
+        });
+}
+
+function create_UUID(){
+    var dt = new Date().getTime();
+    var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = (dt + Math.random()*16)%16 | 0;
+        dt = Math.floor(dt/16);
+        return (c=='x' ? r :(r&0x3|0x8)).toString(16);
+    });
+    return uuid;
+}
+$("#create_user").click(function(){
+  $.ajax({
+      type: "POST",
+      url: url+'init/',
+      dataType:  "JSON",
+      data: {customer_xid:create_UUID()},
+      success: function (data) {
+        localStorage.setItem("token",data.data.token );
+        localStorage.removeItem("enabled")
+        alert("user created successfully")
+        location.reload()
+      },
+      error: function (data) {
+        console.log(data,'error');
+      }
+    });
+});
+function getDetails(){
+$.ajax({
+      type: "GET",
+      url: url+'wallet',
+      dataType:  "JSON",
+      headers: {"Authorization": "Token "+localStorage.getItem("token")},
+      data: {},
+      success: function (data) {
+      localStorage.setItem("enabled",data.data.wallet[0].status)
+       $("#wallet_details").html('')
+       $("#wallet_details").html(
+       '<li class="list-group-item list-group-item-success">'+'ID: '+data.data.wallet[0].id+'</li>'+
+       '<li class="list-group-item list-group-item-success">'+'Status: '+data.data.wallet[0].status+'</li>'+
+       '<li class="list-group-item list-group-item-success">'+'Enabled at: '+data.data.wallet[0].enabled_at+'</li>'+
+       '<li class="list-group-item list-group-item-success">'+'Disabled at: '+data.data.wallet[0].disabled_at+'</li>'+
+       '<li class="list-group-item list-group-item-success">'+'Balance: '+data.data.wallet[0].balance+'</li>'+
+       '<li class="list-group-item list-group-item-success">'+'Owner ID: '+data.data.wallet[0].owned_by+'</li>'
+       )
+      },
+      error: function (data) {
+        console.log(data,'error');
+        if(data.status == 400){
+            $("#wallet_details").html('')
+            $("#wallet_details").html('<li class="list-group-item list-group-item-danger">'+data.responseJSON.data.error+'</li>')
+        }
+      }
+    });
+}
+
+</script>

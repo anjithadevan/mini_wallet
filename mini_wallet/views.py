@@ -12,7 +12,8 @@ from rest_framework.authtoken.models import Token
 from rest_framework.views import APIView
 
 from mini_wallet.models import WalletUser, Wallet, Deposit
-from mini_wallet.serializers import WalletUserSerializer, WalletSerializer, DisableWalletSerializer, AddMoneySerializer
+from mini_wallet.serializers import WalletUserSerializer, WalletSerializer, DisableWalletSerializer, AddMoneySerializer, \
+    WithdrawMoneySerializer
 from datetime import datetime
 
 
@@ -106,18 +107,20 @@ class AddvirtualMoneyViewSet(viewsets.ModelViewSet):
 class WithdrawVirtualMoneyViewSet(viewsets.ModelViewSet):
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
-    serializer_class = AddMoneySerializer
+    serializer_class = WithdrawMoneySerializer
     queryset = Deposit.objects.all()
 
     def create(self, request, *args, **kwargs):
         data = request.data.copy()
-        data['deposited_by'] = self.request.user.id
+        data['withdrawn_by'] = self.request.user.id
         data['status'] = True
-        serializer = AddMoneySerializer(data=data)
+        serializer = WithdrawMoneySerializer(data=data)
         if serializer.is_valid():
             wallet = Wallet.objects.get(owned_by=self.request.user)
             if wallet.status:
-                if wallet.balance - serializer.data['amount'] >= 0:
+                if wallet.balance - serializer.validated_data['amount'] >= 0:
+                    wallet.balance = wallet.balance - serializer.validated_data['amount']
+                    wallet.save()
                     self.perform_create(serializer)
                     return response('success', {'withdrawal': serializer.data}, HTTP_201_CREATED)
                 else:
