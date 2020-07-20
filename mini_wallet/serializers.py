@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
-from mini_wallet.models import WalletUser, Wallet, Deposit
+from mini_wallet.models import WalletUser, Wallet, Deposit, Withdrawal
 
 
 class WalletUserSerializer(serializers.ModelSerializer):
@@ -32,13 +32,6 @@ class DisableWalletSerializer(serializers.Serializer):
 class AddMoneySerializer(serializers.ModelSerializer):
     amount = serializers.IntegerField(required=True)
     reference_id = serializers.UUIDField(required=True, validators=[UniqueValidator(queryset=Deposit.objects.all())])
-    # status = serializers.SerializerMethodField()
-
-    # def get_status(self, add_money):
-    #     import pdb;pdb.set_trace()
-    #     if add_money.status:
-    #         return "success"
-    #     return "failed"
 
     class Meta:
         model = Deposit
@@ -47,14 +40,7 @@ class AddMoneySerializer(serializers.ModelSerializer):
 class WithdrawMoneySerializer(serializers.ModelSerializer):
     amount = serializers.IntegerField(required=True)
     reference_id = serializers.UUIDField(required=True, validators=[UniqueValidator(queryset=Deposit.objects.all())])
-    # status = serializers.SerializerMethodField()
-
-    # def get_status(self, add_money):
-    #     import pdb;pdb.set_trace()
-    #     if add_money.status:
-    #         return "success"
-    #     return "failed"
 
     class Meta:
-        model = Deposit
+        model = Withdrawal
         fields = '__all__'
