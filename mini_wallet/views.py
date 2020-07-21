@@ -11,15 +11,15 @@ from rest_framework.status import HTTP_200_OK, HTTP_401_UNAUTHORIZED, HTTP_400_B
 from rest_framework.authtoken.models import Token
 from rest_framework.views import APIView
 
-from mini_wallet.models import WalletUser, Wallet, Deposit
-from mini_wallet.serializers import WalletUserSerializer, WalletSerializer, DisableWalletSerializer, AddMoneySerializer, \
-    WithdrawMoneySerializer
+from mini_wallet.models import WalletUser, Transaction, Wallet
+from mini_wallet.serializers import WalletUserSerializer, WalletSerializer, DisableWalletSerializer, \
+    TransactionSerializer
 from datetime import datetime
 
 
 class InitializeAccountViewSet(viewsets.ModelViewSet):
     """
-    Creates the user and wallet
+    Creates the user
     """
     permission_classes = (AllowAny,)
     queryset = WalletUser.objects.all()
@@ -42,6 +42,9 @@ class InitializeAccountViewSet(viewsets.ModelViewSet):
 
 
 class WalletView(APIView):
+    """
+    APIView for getting wallet details, enabling and disabling wallet
+    """
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
 
@@ -81,40 +84,52 @@ class WalletView(APIView):
 
 
 class AddvirtualMoneyViewSet(viewsets.ModelViewSet):
+    """
+    Viewset for adding money to the wallet
+    """
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
-    serializer_class = AddMoneySerializer
-    queryset = Deposit.objects.all()
+    serializer_class = TransactionSerializer
+    queryset = Transaction.objects.all()
 
     def create(self, request, *args, **kwargs):
         data = request.data.copy()
-        data['deposited_by'] = self.request.user.id
+        data['deposited_or_withdrawn_by'] = self.request.user.id
         data['status'] = True
-        serializer = AddMoneySerializer(data=data)
+        data['transaction_status'] = 'DT'
+        serializer = TransactionSerializer(data=data)
         if serializer.is_valid():
-            wallet = Wallet.objects.get(owned_by=self.request.user)
-            if wallet.status:
-                self.perform_create(serializer)
-                wallet.balance = wallet.balance + serializer.data['amount']
-                wallet.save()
-                return response('success', {'deposit': serializer.data}, HTTP_201_CREATED)
-            else:
-                return response('failed', {'message': 'wallet is not yet enabled'}, HTTP_400_BAD_REQUEST)
+            try:
+                wallet = Wallet.objects.get(owned_by=self.request.user)
+                if wallet.status:
+                    self.perform_create(serializer)
+                    wallet.balance = wallet.balance + serializer.data['amount']
+                    wallet.save()
+                    return response('success', {'deposit': get_data('deposited_by', 'deposited_at', serializer.data)},
+                                    HTTP_201_CREATED)
+                else:
+                    return response('failed', {'message': 'wallet is not yet enabled'}, HTTP_400_BAD_REQUEST)
+            except ObjectDoesNotExist:
+                return response('failed', {'message': 'No wallet is found'}, HTTP_400_BAD_REQUEST)
         else:
             return response('failed', serializer.errors, HTTP_400_BAD_REQUEST)
 
 
 class WithdrawVirtualMoneyViewSet(viewsets.ModelViewSet):
+    """
+    Viewset for money withdrawal from wallet
+    """
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
-    serializer_class = WithdrawMoneySerializer
-    queryset = Deposit.objects.all()
+    serializer_class = TransactionSerializer
+    queryset = Transaction.objects.all()
 
     def create(self, request, *args, **kwargs):
         data = request.data.copy()
-        data['withdrawn_by'] = self.request.user.id
+        data['deposited_or_withdrawn_by'] = self.request.user.id
         data['status'] = True
-        serializer = WithdrawMoneySerializer(data=data)
+        data['transaction_status'] = 'WT'
+        serializer = TransactionSerializer(data=data)
         if serializer.is_valid():
             wallet = Wallet.objects.get(owned_by=self.request.user)
             if wallet.status:
@@ -122,7 +137,9 @@ class WithdrawVirtualMoneyViewSet(viewsets.ModelViewSet):
                     wallet.balance = wallet.balance - serializer.validated_data['amount']
                     wallet.save()
                     self.perform_create(serializer)
-                    return response('success', {'withdrawal': serializer.data}, HTTP_201_CREATED)
+                    return response('success',
+                                    {'withdrawal': get_data('withdrawn_by', 'withdrawn_at', serializer.data)},
+                                    HTTP_201_CREATED)
                 else:
                     return response('failed', {'message': "wallet doesn't have enough money"}, HTTP_400_BAD_REQUEST)
             else:
@@ -137,3 +154,18 @@ def response(status, data, code):
         'data': data
     }
     return Response(data=responses, status=code)
+
+
+def get_data(user_by, time, serializer_data):
+    status = 'failed'
+    if serializer_data['status']:
+        status = 'success'
+    data = {
+        'id': serializer_data['id'],
+        user_by: serializer_data['deposited_or_withdrawn_by'],
+        'status': status,
+        time: serializer_data['deposited_or_withdrawn_at'],
+        'amount': serializer_data['amount'],
+        'reference_id': serializer_data['reference_id'],
+    }
+    return data
