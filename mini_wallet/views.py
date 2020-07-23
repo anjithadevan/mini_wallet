@@ -34,8 +34,7 @@ class InitializeAccountViewSet(viewsets.ModelViewSet):
                 token, _ = Token.objects.get_or_create(user=user)
                 return response('success', {"token": token.key}, HTTP_200_OK)
             return response('failed', {}, HTTP_401_UNAUTHORIZED)
-        else:
-            return Response(
+        return Response(
                 serializer.errors,
                 status=HTTP_400_BAD_REQUEST
             )
@@ -63,12 +62,11 @@ class WalletView(APIView):
             wallet, _ = Wallet.objects.get_or_create(owned_by=self.request.user)
             if wallet.status:
                 return response('fail', {"error": "Already enabled"}, HTTP_400_BAD_REQUEST)
-            else:
-                serializer.validated_data['status'] = wallet.status = True
-                wallet.enabled_at = datetime.now()
-                wallet.save()
-                serializer = WalletSerializer(instance=wallet)
-                return response('success', {'wallet': serializer.data}, HTTP_201_CREATED)
+            serializer.validated_data['status'] = wallet.status = True
+            wallet.enabled_at = datetime.now()
+            wallet.save()
+            serializer = WalletSerializer(instance=wallet)
+            return response('success', {'wallet': serializer.data}, HTTP_201_CREATED)
         return response('failed', serializer.errors, HTTP_400_BAD_REQUEST)
 
     def patch(self, request):
@@ -107,12 +105,10 @@ class AddvirtualMoneyViewSet(viewsets.ModelViewSet):
                     wallet.save()
                     return response('success', {'deposit': get_data('deposited_by', 'deposited_at', serializer.data)},
                                     HTTP_201_CREATED)
-                else:
-                    return response('failed', {'message': 'wallet is not yet enabled'}, HTTP_400_BAD_REQUEST)
+                return response('failed', {'message': 'wallet is not yet enabled'}, HTTP_400_BAD_REQUEST)
             except ObjectDoesNotExist:
                 return response('failed', {'message': 'No wallet is found'}, HTTP_400_BAD_REQUEST)
-        else:
-            return response('failed', serializer.errors, HTTP_400_BAD_REQUEST)
+        return response('failed', serializer.errors, HTTP_400_BAD_REQUEST)
 
 
 class WithdrawVirtualMoneyViewSet(viewsets.ModelViewSet):
@@ -140,12 +136,9 @@ class WithdrawVirtualMoneyViewSet(viewsets.ModelViewSet):
                     return response('success',
                                     {'withdrawal': get_data('withdrawn_by', 'withdrawn_at', serializer.data)},
                                     HTTP_201_CREATED)
-                else:
-                    return response('failed', {'message': "wallet doesn't have enough money"}, HTTP_400_BAD_REQUEST)
-            else:
-                return response('failed', {'message': "wallet is not yet enabled"}, HTTP_400_BAD_REQUEST)
-        else:
-            return response('failed', serializer.errors, HTTP_400_BAD_REQUEST)
+                return response('failed', {'message': "wallet doesn't have enough money"}, HTTP_400_BAD_REQUEST)
+            return response('failed', {'message': "wallet is not yet enabled"}, HTTP_400_BAD_REQUEST)
+        return response('failed', serializer.errors, HTTP_400_BAD_REQUEST)
 
 
 def response(status, data, code):
