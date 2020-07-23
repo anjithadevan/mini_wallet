@@ -5,7 +5,7 @@ from mini_wallet import views
 router = routers.DefaultRouter()
 router.register(r'wallet/deposits', views.AddvirtualMoneyViewSet)
 router.register(r'wallet/withdrawals', views.WithdrawVirtualMoneyViewSet)
-router.register(r'init', views.InitializeAccountViewSet)
+router.register(r'init', views.InitializeAccountViewSet, basename='init')
 
 urlpatterns = [
     path('', include(router.urls)),
